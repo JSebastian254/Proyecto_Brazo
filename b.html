@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="utf-8">
+    <title>My first three.js app</title>
+    <style>
+        body { margin: 0; }
+        .group-member {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.126.1/build/three.min.js"></script>
+</head>
+<body>
+    <div id="arm"></div>
+    <h1>ARM</h1>
+    <div id="group-members">
+        <div class="group-member">Juan Sebastián Ramírez</div>
+        <div class="group-member">Marulanda Parra</div>
+    </div>
+    <div id="error"></div>
+
+    <!-- Buttons -->
+    <div>
+        <button class="btn" onclick="rotateBase(-0.1)">Base -</button>
+        <button class="btn" onclick="rotateBase(0.1)">Base +</button>
+    </div>
+    <div>
+        <button class="btn" onclick="rotateShoulder(-0.1)">Hombro -</button>
+        <button class="btn" onclick="rotateShoulder(0.1)">Hombro +</button>
+    </div>
+    <div>
+        <button class="btn" onclick="rotateElbow(-0.1)">Codo -</button>
+        <button class="btn" onclick="rotateElbow(0.1)">Codo +</button>
+    </div>
+    <div>
+        <button class="btn" onclick="startAnimation()">Iniciar Animación</button>
+    </div>
+
+    <script>
+        const width = window.innerWidth;
+        const height = window.innerHeight / 2;
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+        camera.position.x = 0;
+        camera.position.y = 5;
+        camera.position.z = 0;
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(width, height);
+        const arm_DOM = document.getElementById("arm");
+        arm_DOM.appendChild(renderer.domElement);
+
+        const point = new THREE.Vector3();
+        let color_led = 0x00fff0;
+        const a1 = 0.2;
+        const a2 = 0.6;
+        const a3 = 0.8;
+
+        let dot = new THREE.BoxGeometry(0.01, 0.01, 0.01);
+
+        const error_DOM = document.getElementById("error");
+        error_DOM.innerHTML = "Error=";
+
+        let geometry = new THREE.BoxGeometry(1, 0.1, 1.5);
+        let material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const platform = new THREE.Mesh(geometry, material);
+        scene.add(platform);
+
+        geometry = new THREE.BoxGeometry(0.5, 0.1, 0.65);
+        material = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+        const miniPlatform = new THREE.Mesh(geometry, material);
+        miniPlatform.position.set(0, 0, 0.25);
+        miniPlatform.position.y = 0.2;
+        platform.add(miniPlatform);
+        
+        geometry = new THREE.BoxGeometry(1.3, 0.05, 0.4);
+        material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const miniPlatform2 = new THREE.Mesh(geometry, material);
+        miniPlatform2.position.set(0, 0, -0.45);
+        miniPlatform2.position.y = 0.2;
+        platform.add(miniPlatform2);
+
+        geometry = new THREE.BoxGeometry(0.45, a1, 0.45);
+        material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const base = new THREE.Mesh(geometry, material);
+        base.translateY(a1 / 2 + 0.05);
+        miniPlatform.add(base);
+
+        // Create walls attached to the base
+        geometry = new THREE.BoxGeometry(0.45, 0.4, 0.05); // Grosor 0.05, altura 0.4, y longitud igual a la plataforma
+        material = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Blue color
+        const frontWall = new THREE.Mesh(geometry, material);
+        const backWall = new THREE.Mesh(geometry, material);
+        frontWall.position.set(0, 0.1, -0.25); // Alineamos la pared frontal
+        backWall.position.set(0, 0.1, 0.25); // Alineamos la pared posterior
+        base.add(frontWall);
+        base.add(backWall);
+
+        // Create hierarchical structure for the arm segments
+        let shoulder = new THREE.Object3D();
+        shoulder.translateY(a1 / 2);
+        base.add(shoulder);
+
+        geometry = new THREE.BoxGeometry(0.05, a2, 0.05);
+        material = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Blue color
+        let lowerArm = new THREE.Mesh(geometry, material);
+        lowerArm.position.set(0, 0, 0.15); // Posiciona lowerArm en (0, 0, 0)
+        lowerArm.translateY(a2 / 2);
+        shoulder.add(lowerArm);
+
+        let lowerArm2 = new THREE.Mesh(geometry, material); // Create the second lowerarm
+        lowerArm2.position.set(0, 0, -0.15); // Posiciona lowerArm en (0, 0, 0)
+        lowerArm2.translateY(a2 / 2); // Position the second lowerarm
+        shoulder.add(lowerArm2); // Add the second lowerarm to the shoulder
+
+        let lowerArm3 = new THREE.Mesh(geometry, material); // Create the second lowerarm
+        lowerArm3.position.set(-0.1, 0, -0.15); // Posiciona lowerArm en (0, 0, 0)
+        lowerArm3.translateY(a2 / 2); // Position the second lowerarm
+        shoulder.add(lowerArm3); // Add the second lowerarm to the shoulder
+
+        let lowerArm4 = new THREE.Mesh(geometry, material); // Create the second lowerarm
+        lowerArm4.position.set(-0.1, 0, 0.15); // Posiciona lowerArm en (0, 0, 0)
+        lowerArm4.translateY(a2 / 2); // Position the second lowerarm
+        shoulder.add(lowerArm4); // Add the second lowerarm to the shoulder
+
+        let elbow = new THREE.Object3D();
+        elbow.translateY(a2 / 2);
+        lowerArm.add(elbow);
+
+        geometry = new THREE.BoxGeometry(0.05, a3, 0.05);
+        material = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Yellow color
+        let arm = new THREE.Mesh(geometry, material);
+        arm.position.set(0, 0, -0.3);
+        arm.translateY(a3 / 2);
+        elbow.add(arm);
+
+        let arm2 = new THREE.Mesh(geometry, material);
+        arm2.position.set(0, 0, 0);
+        arm2.translateY(a3 / 2);
+        elbow.add(arm2);
+
+        let wrist = new THREE.Object3D();
+        wrist.translateY(a3 / 2);
+        arm.add(wrist);
+
+        // Create a hand at the end of the arm
+        geometry = new THREE.TorusGeometry(0.1, 0.01, 3, 9, 5.6);
+        material = new THREE.MeshBasicMaterial({ color: 0xff00ff }); // Magenta color
+        let hand = new THREE.Mesh(geometry, material);
+        hand.scale.set(1.5, 1.5, 1.5); // Escalar la mano en todas las direcciones
+        hand.position.set(0, 0, 0.15); // Mover la mano a la posición deseada
+        hand.rotation.y = Math.PI / 2;
+        hand.rotation.x = Math.PI / 2;
+        const angleInRadians = 0 * Math.PI / 180;
+        hand.rotation.z = angleInRadians;
+        wrist.add(hand);
+
+        // Set up parameters for a line to visualize the arm trajectory
+        const MAX_POINTS = 1000;
+        material = new THREE.LineBasicMaterial({ color: 0x00ffff }); // Cyan color
+        geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(MAX_POINTS * 3);
+        let last_point = 0;
+
+        // Set initial positions for the arm trajectory line
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const line = new THREE.Line(geometry, material);
+        scene.add(line);
+
+        // Define two points for the Bezier curve
+        const P0 = new THREE.Vector3(a2, a1 / 2, -a3);
+        const P1 = new THREE.Vector3(a2, a1 / 2, a3);
+        var t = 0;
+
+        var P0_camara = new THREE.Vector3(0, 5, 0);
+        var P1_camara = new THREE.Vector3(0, 0, 5);
+        var t_camara=0;
+
+        // Create wheels
+        geometry = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 32);
+        material = new THREE.MeshBasicMaterial({ color: 0xe9ed25 });
+        const wheel1 = new THREE.Mesh(geometry, material);
+        wheel1.position.set(0.55, 0.05, 0.3); // Mover la rueda hacia abajo y al borde de la plataforma
+        wheel1.rotation.x = Math.PI / 2; // Rotar la rueda 90 grados alrededor del eje X
+        wheel1.rotation.z = Math.PI / 2; // Rotar la rueda 90 grados alrededor del eje Z
+        scene.add(wheel1);
+
+        const wheel2 = new THREE.Mesh(geometry, material);
+        wheel2.position.set(-0.57, 0.05, 0.3); // Mover la rueda hacia abajo y al borde de la plataforma
+        wheel2.rotation.x = Math.PI / 2; // Rotar la rueda 90 grados alrededor del eje X
+        wheel2.rotation.z = Math.PI / 2; // Rotar la rueda 90 grados alrededor del eje Z
+        scene.add(wheel2);
+
+        // Start the animation loop
+        // animate();
+
+        // Function to start animation
+        function startAnimation() {
+            animate(); // Call the animate() function to start the animation
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Calculate new angles for the joints
+            let th1p, th2p, th3p;
+            th1p = Math.sin(Date.now() * 0.001) * Math.PI / 6; // Oscillation of the base horizontally
+            th2p = Math.sin(Date.now() * 0.0006) * Math.PI / 9 - Math.PI / 6; // Vertical movement of the shoulder downwards with a wider range
+            th3p = Math.sin(Date.now() * 0.0008) * Math.PI / 8; // Vertical movement of the elbow with a wider range
+
+            // Limit angles between 90 and -90 degrees to simulate realistic movement
+            th1p = Math.max(-Math.PI / 6, Math.min(Math.PI / 6, th1p)); // Limit the base between -30 and 30 degrees
+            th2p = Math.max(-Math.PI / 6, Math.min(Math.PI / 9, th2p)); // Limit the shoulder between -30 and 20 degrees
+            th3p = Math.max(-Math.PI / 6, Math.min(Math.PI / 0, th3p)); // Limit the elbow between -22.5 and 22.5 degrees
+
+            // Update the joint rotations
+            base.rotation.y = th1p;
+            shoulder.rotation.z = Math.PI / 2 + th2p;
+            elbow.rotation.z = th3p;
+
+            // Visualize the wrist position with a point
+            let dot_i = new THREE.Mesh(dot, material);
+            wrist.getWorldPosition(point);
+            scene.add(dot_i);
+
+            // Update the arm trajectory line
+            positions[last_point] = point.x;
+            positions[last_point + 1] = point.y;
+            positions[last_point + 2] = point.z;
+            last_point = last_point + 3;
+            line.geometry.attributes.position.needsUpdate = true;
+            error_DOM.innerHTML = "Error=" + point.distanceTo(P1);
+
+            // Calculate the camera position on the trajectory
+            let t_camara = (Date.now() * 0.0001) % 1; // Parameter of the trajectory (from 0 to 1)
+            let P0_camara = new THREE.Vector3(0, 5, 0);
+            let P1_camara = new THREE.Vector3(0, 0, 5);
+            let R_camara = bezier2(P0_camara, P1_camara, t_camara);
+            camera.position.set(R_camara.x, R_camara.y, R_camara.z);
+            camera.lookAt(0, 0, 0);
+
+            // Render the scene
+            renderer.render(scene, camera);
+        }
+
+        // WebSocket setup
+        const socket = new WebSocket('ws://your-esp32-ip:8765'); // Change to your ESP32 IP address
+
+        socket.onopen = function (event) {
+            console.log('WebSocket connection established');
+        };
+
+        socket.onmessage = function (event) {
+            console.log('Message from server:', event.data);
+        };
+
+        function sendCommand(commandType, data) {
+            const message = JSON.stringify({ type: commandType, data: data });
+            socket.send(message);
+        }
+
+        // Function to turn the LED on
+        function led_on() {
+            sendCommand("led_on", []);
+        }
+
+        // Function to turn the LED off
+        function led_off() {
+            sendCommand("led_off", []);
+        }
+
+        // Function to quit or reset the program
+        function quit() {
+            window.location.reload();
+        }
+
+        // Function to rotate the base
+        function rotateBase(angle) {
+            sendCommand("manual_control", [angle, 0]);
+        }
+
+        // Function to rotate the shoulder
+        function rotateShoulder(angle) {
+            sendCommand("manual_control", [0, angle]);
+        }
+
+        // Function to rotate the elbow
+        function rotateElbow(angle) {
+            sendCommand("manual_control", [0, 0, angle]);
+        }
+
+        // Function that returns the point on a Bezier curve
+        function bezier2(P0, P1, t) {
+            let B = new THREE.Vector3();
+            B.x = (1 - t) * (1 - t) * P0.x + 2 * (1 - t) * t * P0.x + t * t * P1.x;
+            B.y = (1 - t) * (1 - t) * P0.y + 2 * (1 - t) * t * P0.y + t * t * P1.y;
+            B.z = (1 - t) * (1 - t) * P0.z + 2 * (1 - t) * t * P0.z + t * t * P1.z;
+            return B;
+        }
+
+        // Start the animation when the page loads
+        animate();
+
+    </script>
+</body>
+</html>

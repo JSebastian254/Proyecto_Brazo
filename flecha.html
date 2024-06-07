@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página con Tres Columnas</title>
+    <style>
+        body {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-gap: 10px;
+            margin: 20px;
+        }
+
+        .columna {
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+  
+    <div class="columna">
+        <input  id="entrada1" type="text" value="1000" maxlength="6" >
+    </div>
+    <div class="columna">
+        <!-- Segundo Renglón -->
+        <button onclick="move_motors(1,1)">&uarr;</button>
+    </div>
+    <div class="columna">
+        <input  id="entrada2" type="text" value="1000" maxlength="6">
+    </div>
+    <div class="columna">
+        <!-- Tercer Renglón -->
+        <button onclick="move_motors(1,0)">&larr;</button>
+    </div>
+    <div class="columna">
+        <button onclick="move_motors(0,0)">STOP</button>
+    </div>
+    <div class="columna">
+        <button onclick="move_motors(0,1)">&rarr;</button>
+    </div>
+    <div class="columna"></div>
+    <div class="columna">
+        <!-- Cuarto Renglón -->
+        <button onclick="move_motors(-1,-1)">&darr;</button>
+    </div>
+    <div class="columna"></div>
+    
+	 <div style="grid-column: span 3;">
+	<input type="text" id="commands" value="+600+10000+10000_+600-10000-10000_+200+3000-3000_+600+10000+10000_+600-10000-10000_+200+3000-3000_+600+10000+10000_+600-10000-10000_+200+3000-3000_" size="80"/>
+        <button onclick="draw()">Draw</button>
+	</div>
+	 <div style="grid-column: span 3;">
+	<input type="text" id="commands" value="+600+10000+10000_+200+3000-3000_+600+10000+10000_+200+3000-3000_+600+10000+10000_+200+3000-3000_" size="80"/>
+        <button onclick="draw()">Draw</button>
+	</div>
+	 <div style="grid-column: span 3;">
+	<input type="text" id="commands" value="+500+10000-0000_+500+000-10000_" size="80"/>
+        <button onclick="draw()">Draw</button>
+	</div>
+	<script>
+	function move_motors(x, y) {
+        const valorEntrada1 = parseFloat(document.getElementById('entrada1').value);
+        const valorEntrada2 = parseFloat(document.getElementById('entrada2').value);
+
+        if (isNaN(valorEntrada1) || isNaN(valorEntrada2)) {
+            console.error('Valores de entrada no son numéricos',document.getElementById('entrada1').value,document.getElementById('entrada2').value);
+            return;
+        }
+
+        console.log('Valores de entrada:', valorEntrada1, valorEntrada2);
+
+        // Use fetch to send coordinates to the server
+        fetch(`?x=${valorEntrada1 * x}&y=${valorEntrada2 * y}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error sending coordinates to the server');
+                }
+                console.log('Coordinates sent successfully');
+            })
+            .catch(error => console.error(error));
+    }
+    
+    function draw() {
+        const commands = document.getElementById('commands').value;
+
+
+        console.log('Valores de comando:', commands);
+
+        // Use fetch to send coordinates to the server
+        fetch(`?command=${commands}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error sending coordinates to the server');
+                }
+                console.log('Commands sent successfully');
+            })
+            .catch(error => console.error(error));
+    }
+	</script>
+</body>
+</html>
